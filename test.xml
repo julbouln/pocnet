@@ -1,0 +1,6 @@
+<message type="login" src="client_n" dst="server">
+<values>
+  <val_string name="login" value="julbouln"/>
+  <val_string name="password" value="xxxx"/>
+</values>
+</message>
