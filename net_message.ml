@@ -46,12 +46,17 @@ object(self)
       let xvals=values#to_xml in
 	xml#add_child xvals; 
 
-(*	let xdata=new xml_node in
-	  xdata#set_tag "data";
-	  xdata#add_child data; 
+	(try 
+	   let t=data#tag in	     
+	   let xdata=new xml_node in
+	     xdata#set_tag "data";
+	     xdata#add_child data; 
+	     
+	     xml#add_child xdata;
+	 with
+	     Xml_node_binding_not_found xet->()
+	);
 
-	  xml#add_child xdata;
-*)
 	  xml
 
   method from_xml (xml:xml_node)=
@@ -91,15 +96,16 @@ object(self)
   method virtual check : xml_message -> bool
 end;;
 
+(*
 class empty_message_handler=
 object
   inherit message_handler
   method parse msg=new xml_message
   method check msg=false
 end;;
+*)
 
-
-
+(** ident message *)
 class ident_message_handler get_port set_port get_ident set_ident=
 object(self)
   inherit message_handler
@@ -134,6 +140,7 @@ object(self)
 
 end;;
 
+(** test message *)
 class test_message_handler=
 object(self)
   inherit message_handler
@@ -144,8 +151,8 @@ object(self)
 	vl#set_id "values";
 	vl#set_val (`String "type") (`String msg#get_type);
 	res#set_values vl;
-      print_string (msg#get_src^" say : "^(string_of_val (msg#get_values#get_val (`String "test"))));print_newline();
-      res
+	print_string (msg#get_src^" say : "^(string_of_val (msg#get_values#get_val (`String "test"))));print_newline();
+	res
   method check msg=true
 
 end;;
@@ -167,7 +174,8 @@ object(self)
 	Hashtbl.find handlers k 
       with Not_found -> (*new empty_message_handler*)  raise (Message_parser_not_found k) 
 
-
+  method handler_foreach f=
+    Hashtbl.iter f handlers 
   
 
   method message_parse xmsg=

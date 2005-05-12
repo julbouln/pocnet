@@ -12,8 +12,16 @@ inet_addr_any;;
 exception Network_error
 exception Network_not_connected
 
+class virtual network_object=
+object(self)
+  method virtual message_send : xml_message -> bool
+end;;
+
+
+
 class network_connection on_disconnect (message_resend:xml_message->unit) (iport:int)=
 object(self)
+  inherit network_object
   val mutable port=iport
   method get_port=port
   method set_port p=port<-p

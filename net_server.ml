@@ -171,6 +171,7 @@ exception Bad_client_ident;;
 (** Network server class *)
 class network_server p=
 object(self)
+  inherit network_object
   val mutable m=Mutex.create();
   val mutable mph=new message_parser_handler
 
@@ -217,10 +218,10 @@ object(self)
   method set_disconnect d=disconnect<-d
  
   method on_disconnect cl=
-    disconnect cl;
     print_string ("POCNET_SERVER: "^cl^" disconnected.");print_newline();
-
     trans#client_del cl;
+    disconnect cl;
+
     
   method update()=
     while true do
@@ -233,11 +234,14 @@ object(self)
     xmsg#set_src src;
     trans#messages_list_send_to_dest xmsg; 
 *)
-
-  method message_send src xmsg=
+  method message_send_from src xmsg=
       xmsg#set_src src;
       trans#message_send_to_dest xmsg; 
-(*      self#message_resend xmsg; *)
+
+  method message_send xmsg=
+    self#message_send_from "server" xmsg;
+    true
+
 
 
   method check_client_ident cn=
@@ -252,11 +256,14 @@ object(self)
   method run()=
     print_string "POCNET_SERVER: started";print_newline(); 
 
-    Thread.create(function()->self#update()) (); 
+(*    Thread.create(function()->self#update()) ();  *)
 
     while true do      
       let (sd,sa)=Unix.accept sock in
       let conn=new network_server_connection self#check_client_ident self#on_disconnect self#message_resend (sd,sa) 25001 in
+	mph#handler_foreach (fun hk hv->
+			       conn#get_mph#handler_add hk hv
+			    );
 (*	conn#set_mph mph; *)
 	let i=ref 0 in
 	  while !i<5 do
