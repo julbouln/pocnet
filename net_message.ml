@@ -96,6 +96,15 @@ object(self)
   method virtual check : xml_message -> bool
 end;;
 
+let message_generic_response msg=
+  let res=new xml_message in
+    res#set_type "response";
+    let vl=new val_generic_handler in
+      vl#set_id "values";
+      vl#set_val (`String "type") (`String msg#get_type);
+      res#set_values vl;
+      res;;
+
 (*
 class empty_message_handler=
 object
