@@ -284,17 +284,20 @@ object(self)
 		 connect conn#get_ident;	  
 
 	    )
-	     with Unix.Unix_error (_,_,_)->
-	       if !i<4 then (
-		 print_string "POCNET_SERVER: connection error, retry ...";
-		 print_newline();
-		 i:= !i+1
-	       ) else
-		 (
-		   print_string "POCNET_SERVER: connection error, abort ...";
-		   print_newline();
-		   i:= !i+1
-		 )
+	     with 
+		 _ ->
+(*	       Unix.Unix_error (_,_,_)-> *)
+		  if !i<4 then (
+		    print_string "POCNET_SERVER: connection error, retry ...";
+		    print_newline();
+		    i:= !i+1
+		  ) else
+		    (
+		      print_string "POCNET_SERVER: connection error, abort ...";
+		      print_newline();
+		      i:= !i+1
+		    )
+
 	    );
 	  done;	  
 
