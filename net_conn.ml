@@ -104,8 +104,13 @@ object(self)
       try  
       print_string "POCNET : wait for message";print_newline(); 
 	self#message_receive(); 
-      with End_of_file -> 
-	self#disconnect(); 
+      with 
+	  End_of_file -> 
+	    print_string "POCNET : WARNING : End of file";print_newline(); 
+	    self#disconnect(); 
+	| Sys_error e ->
+	    print_string ("POCNET : WARNING : "^e);print_newline(); 
+	    self#disconnect(); 
     done;
 
 
