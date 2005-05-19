@@ -60,40 +60,40 @@ object(self)
 
   method message_send (xmsg:xml_message)=
     let (ic,oc)=self#send_chans in
-      print_string "POCNET : send message";print_newline(); 
+(*      print_string "POCNET : send message";print_newline(); *)
       if xmsg#get_src="" then
 	xmsg#set_src ident;
       let msg=xmsg#to_xml#to_string in
 	data_to_chan (msg^"\n") oc;
 	flush oc;
 
-	print_string "POCNET : wait for response message";print_newline(); 
+(*	print_string "POCNET : wait for response message";print_newline(); *)
 	let recv=chan_to_data ic in
 	let rxmsg=new xml_message in
 	let rxn=new xml_node in
 	  rxn#of_string recv;
 	  rxmsg#from_xml rxn;
 	  mph#message_check rxmsg;
-	  print_string "POCNET : response message received";print_newline(); 
+(*	  print_string "POCNET : response message received";print_newline();  *)
 	  true
   method message_receive()=
     let (ic,oc)=self#recv_chans in
     let recv=chan_to_data ic in
-      print_string "POCNET : receive message";print_newline(); 
+(*      print_string "POCNET : receive message";print_newline(); *)
     let xmsg=new xml_message in
     let xn=new xml_node in
       xn#of_string recv;
       xmsg#from_xml xn;
       message_resend xmsg;
-      print_string "POCNET : message received";print_newline(); 
+(*      print_string "POCNET : message received";print_newline(); *)
 
       if xmsg#get_type<>"response" then (
 	let rxmsg=mph#message_parse xmsg in
-	  print_string "POCNET : message parsed";print_newline(); 
+(*	  print_string "POCNET : message parsed";print_newline(); *)
 	  rxmsg#get_values#set_id "values";
 	  rxmsg#set_src ident;
 	  let rmsg=rxmsg#to_xml#to_string in
-	    print_string "POCNET : send response message";print_newline(); 
+(*	    print_string "POCNET : send response message";print_newline(); *)
 	    data_to_chan (rmsg^"\n") oc;
 	    flush oc;
       )
@@ -102,7 +102,7 @@ object(self)
 
     while true do 
       try  
-      print_string "POCNET : wait for message";print_newline(); 
+(*      print_string "POCNET : wait for message";print_newline(); *)
 	self#message_receive(); 
       with 
 	  End_of_file -> 
