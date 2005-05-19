@@ -64,7 +64,7 @@ object(self)
       if xmsg#get_src="" then
 	xmsg#set_src ident;
       let msg=xmsg#to_xml#to_string in
-	data_to_chan (msg) oc;
+	data_to_chan (msg^"\n") oc;
 	flush oc;
 
 	print_string "POCNET : wait for response message";print_newline(); 
@@ -94,7 +94,7 @@ object(self)
 	  rxmsg#set_src ident;
 	  let rmsg=rxmsg#to_xml#to_string in
 	    print_string "POCNET : send response message";print_newline(); 
-	    data_to_chan (rmsg) oc;
+	    data_to_chan (rmsg^"\n") oc;
 	    flush oc;
       )
 
