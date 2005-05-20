@@ -1,6 +1,6 @@
 OCAMLMAKEFILE = OCamlMakefile
 
-PACKS=pocvalue unix
+PACKS=pocvalue unix cryptokit num str
 
 LIBINSTALL_FILES=*.cmi *.cmo *.cmx *.a pocnet.cma pocnet.cmxa
 

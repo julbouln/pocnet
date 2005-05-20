@@ -1,5 +1,5 @@
 description = "Pocengine net"
-requires = "pocvalue,unix"
+requires = "pocvalue,unix,cryptokit,num,str"
 version = "0.2.0"
 archive(byte) = "pocnet.cma"
 archive(native) = "pocnet.cmxa"
