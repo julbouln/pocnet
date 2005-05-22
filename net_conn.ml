@@ -5,6 +5,7 @@ open Value_xml;;
 
 open Net_socket;;
 open Net_message;;
+open Net_msg_handler;;
 
 let get_my_addr()=
 inet_addr_any;;
@@ -56,26 +57,35 @@ object(self)
        Unix.shutdown recv_sock Unix.SHUTDOWN_ALL;
        Unix.shutdown send_sock Unix.SHUTDOWN_ALL;
      with _ -> ());
-    Thread.exit();
+(*    Thread.exit(); *)
 
   method message_send (xmsg:xml_message)=
-    let (ic,oc)=self#send_chans in
-(*      print_string "POCNET : send message";print_newline(); *)
-      if xmsg#get_src="" then
-	xmsg#set_src ident;
-      let msg=xmsg#to_xml#to_string in
-	data_to_chan (msg^"\n") oc;
-	flush oc;
-
-(*	print_string "POCNET : wait for response message";print_newline(); *)
-	let recv=chan_to_data ic in
-	let rxmsg=new xml_message in
-	let rxn=new xml_node in
-	  rxn#of_string recv;
-	  rxmsg#from_xml rxn;
-	  mph#message_check rxmsg;
-(*	  print_string "POCNET : response message received";print_newline();  *)
-	  true
+    (try 
+       let (ic,oc)=self#send_chans in
+	 (*      print_string "POCNET : send message";print_newline(); *)
+	 if xmsg#get_src="" then
+	   xmsg#set_src ident;
+	 let msg=xmsg#to_xml#to_string in
+	   data_to_chan (msg^"\n") oc;
+	   flush oc;
+	   
+	   (*	print_string "POCNET : wait for response message";print_newline(); *)
+	   let recv=chan_to_data ic in
+	   let rxmsg=new xml_message in
+	   let rxn=new xml_node in
+	     rxn#of_string recv;
+	     rxmsg#from_xml rxn;
+	     mph#message_check rxmsg;
+	     (*	  print_string "POCNET : response message received";print_newline();  *)
+     with 
+	 End_of_file -> 
+	   print_string "POCNET : WARNING : End of file (send message)";print_newline(); 
+	   self#disconnect();false
+       | Sys_error e ->
+	   print_string ("POCNET : WARNING : "^e^" (send message)");print_newline(); 
+	   self#disconnect();false
+    );
+	     true
   method message_receive()=
     let (ic,oc)=self#recv_chans in
     let recv=chan_to_data ic in
@@ -91,7 +101,12 @@ object(self)
 	let rxmsg=mph#message_parse xmsg in
 (*	  print_string "POCNET : message parsed";print_newline(); *)
 	  rxmsg#get_values#set_id "values";
-	  rxmsg#set_src ident;
+	  if ident=xmsg#get_src then
+	    rxmsg#set_src "server" 
+	  else
+	    rxmsg#set_src ident;
+
+	  rxmsg#set_dst xmsg#get_src;
 	  let rmsg=rxmsg#to_xml#to_string in
 (*	    print_string "POCNET : send response message";print_newline(); *)
 	    data_to_chan (rmsg^"\n") oc;
@@ -108,9 +123,11 @@ object(self)
 	  End_of_file -> 
 	    print_string "POCNET : WARNING : End of file";print_newline(); 
 	    self#disconnect(); 
+	    Thread.exit(); 
 	| Sys_error e ->
 	    print_string ("POCNET : WARNING : "^e);print_newline(); 
-	    self#disconnect(); 
+	    self#disconnect();
+	    Thread.exit();  
     done;
 
 
@@ -121,82 +138,3 @@ object(self)
 
 end;;
 
-class network_client cp=
-object(self)
-  inherit network_connection (fun s->()) (fun m->()) cp
-
-  initializer 
-    mph#handler_add "ident" (new ident_message_handler (Some (fun()->self#get_port)) None None (Some self#set_ident));
-
-  method connect addr p=
-    let host=(Unix.gethostbyname addr) in 
-      print_string ("POCNET_CLIENT: Connecting to "^host.Unix.h_name);print_newline();
-
-      let clientaddr=(host.Unix.h_addr_list.(0)) in
-	Unix.connect recv_sock (Unix.ADDR_INET(clientaddr,p)); 
-	recv_chans<-Some (Unix.in_channel_of_descr recv_sock,Unix.out_channel_of_descr recv_sock); 
-
-	let my_address=get_my_addr() in
-	let rec recbind()=
-	  (try 
-	     Unix.bind send_sock (Unix.ADDR_INET(my_address,port)) ;
-	   with Unix.Unix_error(e,f,v) -> self#set_port (port+1);recbind()) in
-	  recbind();
-	self#message_receive();
-      
-
-	  Unix.listen send_sock 1;
-
-	  print_string ("POCNET_CLIENT: wait for server connection");
-	  print_newline();
-	  let (sd,sa)=Unix.accept send_sock in
-	    send_chans<-Some (Unix.in_channel_of_descr sd,Unix.out_channel_of_descr sd);
-	    
-	    print_string "POCNET_CLIENT: server connected";print_newline();
-
-	    self#start(); 
-
-
-
-end;;
-
-
-class network_server_connection check_ident on_disconnect message_resend (sd,sa) cp=
-object(self) 
-  inherit network_connection on_disconnect message_resend cp
-
-  initializer 
-    mph#handler_add "ident" (new ident_message_handler None (Some self#set_port) (Some (fun()->self#get_ident)) None);
-    mph#handler_add "test" (new test_message_handler);
-
-
-  method connect()=
-    send_chans<-Some (Unix.in_channel_of_descr sd,Unix.out_channel_of_descr sd);
-
-    (match sa with
-       | ADDR_INET (ia,p)->
-	   self#set_ident (check_ident (string_of_inet_addr ia)); 
-       | _ -> raise Network_error);
-      
-      self#message_send 
-	(xml_message_of_string (
-	   "<message type=\"ident\">
-                        <values>
-                         <val_string name=\"ident\" value=\""^self#get_ident^"\"/>
-                        </values>
-                       </message>
-                      ")
-	);
-
-    let nsa=match sa with
-      | ADDR_INET (ia,p)->
-	  print_string ("POCNET_SERVER: try connect to "^string_of_inet_addr ia);
-	  print_newline();
-	  self#set_ident (check_ident (string_of_inet_addr ia)); 
-	  ADDR_INET (ia,port)
-      | _ -> raise Network_error in
-
-      Unix.connect recv_sock nsa;
-      recv_chans<-Some (Unix.in_channel_of_descr recv_sock,Unix.out_channel_of_descr recv_sock); 
-
-end;;

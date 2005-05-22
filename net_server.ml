@@ -1,6 +1,7 @@
 open Unix;;
 open Net_message;;
 open Net_conn;;
+open Net_server_conn;;
 
 exception Client_not_found of string;;
 exception Group_not_found of string;;

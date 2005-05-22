@@ -99,72 +99,16 @@ end;;
 let message_generic_response msg=
   let res=new xml_message in
     res#set_type "response";
+    res#set_dst msg#get_src;
     let vl=new val_generic_handler in
       vl#set_id "values";
       vl#set_val (`String "type") (`String msg#get_type);
       res#set_values vl;
+      
       res;;
 
-(*
-class empty_message_handler=
-object
-  inherit message_handler
-  method parse msg=new xml_message
-  method check msg=false
-end;;
-*)
 
-(** ident message *)
-class ident_message_handler get_port set_port get_ident set_ident=
-object(self)
-  inherit message_handler
-  method parse msg=
-    let res=new xml_message in
-      res#set_type "response";
-      let vl=new val_generic_handler in
-	vl#set_id "values";
-	vl#set_val (`String "type") (`String msg#get_type);
-	(match get_port with
-	  | Some gp->
-	      vl#set_val (`String "port") (`Int (gp()));
-	  | None -> ());
-	res#set_values vl;
-	(match set_ident with
-	   | Some si ->
-	       let ident=(string_of_val (msg#get_values#get_val (`String "ident"))) in    
-		 print_string ("POCNET: set_ident : "^ident);print_newline();
-		 si ident;
-	   | None -> ());
 
-	  res
-  method check msg=
-    print_string "check";print_newline();
-    (match set_port with
-       | Some sp->
-	   let port=(int_of_val (msg#get_values#get_val (`String "port"))) in    
-	     print_string ("POCNET: set_port : "^string_of_int port);print_newline();
-	     sp port
-       | None -> ());
-    true
-
-end;;
-
-(** test message *)
-class test_message_handler=
-object(self)
-  inherit message_handler
-  method parse msg=
-    let res=new xml_message in
-      res#set_type "response";
-      let vl=new val_generic_handler in
-	vl#set_id "values";
-	vl#set_val (`String "type") (`String msg#get_type);
-	res#set_values vl;
-	print_string (msg#get_src^" say : "^(string_of_val (msg#get_values#get_val (`String "test"))));print_newline();
-	res
-  method check msg=true
-
-end;;
 
 exception Message_parser_not_found of string
 
@@ -205,11 +149,4 @@ object(self)
  
 end;;
 
-(*
-let xmsg=new xml_message;;
-let xtmsg=new xml_node;;
-xtmsg#of_file "test.xml";;
 
-xmsg#from_xml xtmsg;;
-print_string (xmsg#to_xml#to_string);;
-*)
