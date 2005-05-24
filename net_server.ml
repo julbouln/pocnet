@@ -220,8 +220,10 @@ object(self)
  
   method on_disconnect cl=
     print_string ("POCNET_SERVER: "^cl^" disconnected.");print_newline();
-    trans#client_del cl;
-    disconnect cl;
+    (try
+       trans#client_del cl;
+     with Value_common.Object_not_found i->());
+       disconnect cl;
 
     
   method update()=
