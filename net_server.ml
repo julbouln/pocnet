@@ -148,9 +148,9 @@ object(self)
   method message_send_to_dest (msg:xml_message)=
     let l=self#message_get_dest (msg:>message) in
       List.iter (fun c->
-		   if c<>"server" && dest_check c then (
+		   if c<>"server" && dest_check c && self#client_is c then (
 		     let conn=self#client_get c in		     
-		       conn#message_send msg;()
+			 conn#message_send msg;()
 		   )
 		) l;
 (*
@@ -223,8 +223,10 @@ object(self)
     (try
        trans#client_del cl;
        disconnect cl;
-     with Value_common.Object_not_found i->());
-    
+     with 
+	 (*_ -> ()) *)
+      Value_common.Object_not_found i->());
+ 
   method update()=
     while true do
       on_update();
@@ -287,7 +289,7 @@ object(self)
 
 	    )
 	     with 
-		 _ ->
+		 _ -> 
 (*	       Unix.Unix_error (_,_,_)-> *)
 		  if !i<4 then (
 		    print_string "POCNET_SERVER: connection error, retry ...";
