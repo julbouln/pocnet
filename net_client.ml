@@ -4,11 +4,14 @@ open Net_msg_handler;;
 
 class network_client cp=
 object(self)
-  inherit network_connection (fun s->()) (fun m->()) cp
+  inherit network_connection (fun s->()) (fun m->()) cp as super
 
   initializer 
     mph#handler_add "ident" (new ident_message_handler (Some (fun()->self#get_port)) None None (Some self#set_ident));
 
+  method message_send (xmsg:xml_message)=
+    Thread.create (fun()->ignore(super#message_send(xmsg))) ();
+    true
   method connect addr p=
     let host=(Unix.gethostbyname addr) in 
       print_string ("POCNET_CLIENT: Connecting to "^host.Unix.h_name);print_newline();
