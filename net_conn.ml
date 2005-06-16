@@ -12,6 +12,7 @@ inet_addr_any;;
 
 exception Network_error
 exception Network_not_connected
+exception Network_recv_thread_not_launched
 
 class virtual network_object=
 object(self)
@@ -23,6 +24,13 @@ end;;
 class network_connection on_disconnect (message_resend:xml_message->unit) (iport:int)=
 object(self)
   inherit network_object
+
+  val mutable recv_thread=None
+  method get_recv_thread=
+    match recv_thread with
+      | Some t->t
+      | None -> raise Network_recv_thread_not_launched
+
   val mutable port=iport
   method get_port=port
   method set_port p=port<-p
@@ -50,12 +58,56 @@ object(self)
     | None -> raise Network_not_connected
 
 
+  method force_disconnect sock=
+    let r=ref false in
+    let cn=ref 0 in
+      while !r=false do
+	(try 
+	   Unix.shutdown sock Unix.SHUTDOWN_ALL;
+	   cn:= !cn+1;
+	   if !cn=10 then r:=true;
+	 with
+	     Unix.Unix_error(Unix.ENOTCONN,_,_) -> r:=true);
+      done
+
+  method disconnect_send()=
+    let r=ref false in
+      while !r=false do
+	(try 
+	   Unix.shutdown send_sock Unix.SHUTDOWN_SEND
+	 with
+	     Unix.Unix_error(Unix.ENOTCONN,_,_) -> r:=true);
+      done
+
+
+
   method disconnect()=
     print_string "POCNET : disconnect";print_newline();
     on_disconnect ident;
     (try 
+    self#force_disconnect send_sock; 
+(*    Unix.close send_sock; *)
+(*    self#disconnect_send(); *)
+(*       Unix.shutdown send_sock Unix.SHUTDOWN_ALL; *)
+       print_string "POCNET : send sock closed";print_newline();
+    send_sock<-Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0; 
+    self#force_disconnect recv_sock; 
+(*       Unix.close recv_sock; *)
+(*       Unix.shutdown recv_sock Unix.SHUTDOWN_ALL; *)
+       print_string "POCNET : receive sock closed";print_newline(); 
+    recv_sock<-Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0; 
+(*    self#message_send (new xml_message); *)
+
+
+
+    send_chans<-None;
+    recv_chans<-None;
+
+    
+(*
        Unix.shutdown recv_sock Unix.SHUTDOWN_ALL;
        Unix.shutdown send_sock Unix.SHUTDOWN_ALL;
+*)
      with _ -> ());
 (*    Thread.exit(); *)
 
@@ -80,9 +132,13 @@ object(self)
      with 
 	 End_of_file -> 
 	   print_string "POCNET : WARNING : End of file (send message)";print_newline(); 
+(*	   Thread.kill self#get_recv_thread; *)
+(*	   Unix.close recv_sock; *)
 	   self#disconnect();false
        | Sys_error e ->
 	   print_string ("POCNET : WARNING : "^e^" (send message)");print_newline(); 
+(*	   Thread.kill self#get_recv_thread; *)
+
 	   self#disconnect();false
     );
 	     true
@@ -124,17 +180,18 @@ object(self)
 	    print_string "POCNET : WARNING : End of file";print_newline(); 
 	    self#disconnect(); 
 	    Thread.exit(); 
+
 	| Sys_error e ->
 	    print_string ("POCNET : WARNING : "^e);print_newline(); 
-	    self#disconnect();
+	    self#disconnect(); 
 	    Thread.exit();  
     done;
 
 
   method start()=
-    let t=Thread.create (function()->self#run()) () in
-      print_string ("Thread "^string_of_int (Thread.id t)^" launched (connection)");
-      print_newline();
+    recv_thread<-Some (Thread.create (function()->self#run()) ());
+    print_string ("Thread "^string_of_int (Thread.id self#get_recv_thread)^" launched (connection)");
+    print_newline();
 
 end;;
 

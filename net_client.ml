@@ -17,9 +17,15 @@ object(self)
       print_string ("POCNET_CLIENT: Connecting to "^host.Unix.h_name);print_newline();
 
       let clientaddr=(host.Unix.h_addr_list.(0)) in
-	Unix.connect recv_sock (Unix.ADDR_INET(clientaddr,p)); 
-	recv_chans<-Some (Unix.in_channel_of_descr recv_sock,Unix.out_channel_of_descr recv_sock); 
-
+      let r=ref false in
+	while !r=false do
+	(try 
+	   Unix.connect recv_sock (Unix.ADDR_INET(clientaddr,p)); 
+	   recv_chans<-Some (Unix.in_channel_of_descr recv_sock,Unix.out_channel_of_descr recv_sock); 
+	   r:=true;
+	 with 
+	     Unix.Unix_error(Unix.EISCONN,_,_) -> print_string "POCNET_CLIENT: connection failed, retry ...";print_newline();)
+	done;
 	let my_address=get_my_addr() in
 	let rec recbind()=
 	  (try 
