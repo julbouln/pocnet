@@ -1,5 +1,7 @@
 open Cryptokit;;
 
+(** Simple data to net conversion *)
+
 let gzip_compress s=
   let cs=transform_string (Zlib.compress()) s in
 (*    print_string cs ;*)cs;;
@@ -8,12 +10,13 @@ let gzip_uncompress s=
 (*  print_string s; *)
   transform_string (Zlib.uncompress()) s;;
 
-
+(** copy data to output chan *)
 let data_to_chan d oc=
   output_value oc (gzip_compress d);; 
 (*  output_value oc d *)
 (*  output_string oc (gzip_compress d);; *)
 
+(** get data from input chan *)
 let chan_to_data ic=
   let s=input_value ic in
     gzip_uncompress(s);;

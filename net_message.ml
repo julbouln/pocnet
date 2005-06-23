@@ -1,6 +1,16 @@
 open Value_xml;;
 open Value_val;;
 
+(** Network XML message *)
+
+(** {2 Exceptions} *)
+
+exception Xml_message_error
+exception Message_parser_not_found of string
+
+(** {2 Classes} *)
+
+(** message class *)
 class message=
 object(self)
   val mutable name=""
@@ -16,9 +26,7 @@ object(self)
   method get_dst=dst
 end;;
 
-
-exception Xml_message_error
-
+(** message class with XML support *)
 class xml_message=
 object(self)
   inherit message
@@ -81,7 +89,7 @@ object(self)
 
 end;;
 
-
+(** convert xml string to xml message *)
 let xml_message_of_string str=
   let xn=new xml_node in
     xn#of_string str;
@@ -89,13 +97,14 @@ let xml_message_of_string str=
       xmsg#from_xml xn;
       xmsg;;
 
-
+(** message handler *)
 class virtual message_handler=
 object(self)
   method virtual parse : xml_message -> xml_message
   method virtual check : xml_message -> bool
 end;;
 
+(** create generic message response from message *)
 let message_generic_response msg=
   let res=new xml_message in
     res#set_type "response";
@@ -107,12 +116,7 @@ let message_generic_response msg=
       
       res;;
 
-
-
-
-exception Message_parser_not_found of string
-
-(* message_parser handler *)
+(** message_parser handler *)
 class message_parser_handler=
 object(self)
   val mutable handlers=Hashtbl.create 2

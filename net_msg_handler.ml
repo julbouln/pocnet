@@ -3,6 +3,8 @@ open Value_val;;
 
 open Net_message;;
 
+(** Generic message handlers *)
+
 (** test message *)
 class test_message_handler=
 object(self)
@@ -57,7 +59,6 @@ object(self)
 end;;
 
 (** xml file transfert message *)
-
 class xml_file_message_handler=
 object(self)
   inherit message_handler
