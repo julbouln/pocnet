@@ -20,6 +20,8 @@
 
 
 open Value_common;;
+open Value_object;;
+
 open Value_xml;;
 open Value_xmlparser;;
 open Value_lua;;

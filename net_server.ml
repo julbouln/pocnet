@@ -246,7 +246,7 @@ object(self)
        disconnect cl;
      with 
 	 (*_ -> ()) *)
-      Value_common.Object_not_found i->());
+      Value_object.Object_not_found i->());
  
   method update()=
     while true do
